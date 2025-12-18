@@ -6,6 +6,7 @@ appcompat = "1.7.0"
 material = "1.12.0"
 activity = "1.9.0"
 constraintlayout = "2.1.4"
+webkit = "1.11.0"
 
 legacy-support = "1.0.0"
 gson = "2.10.1"
@@ -16,6 +17,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 legacy-support = { group = "androidx.legacy", name = "legacy-support-v4", version.ref = "legacy-support" }
@@ -23,4 +25,3 @@ legacy-support = { group = "androidx.legacy", name = "legacy-support-v4", versio
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-

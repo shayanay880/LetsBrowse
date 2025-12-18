@@ -16,6 +16,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.webkit.WebView
+import android.widget.CompoundButton
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -47,6 +48,7 @@ import com.harshRajpurohit.letsBrowse.fragment.BrowseFragment
 import com.harshRajpurohit.letsBrowse.fragment.HomeFragment
 import com.harshRajpurohit.letsBrowse.model.Bookmark
 import com.harshRajpurohit.letsBrowse.model.Tab
+import com.harshRajpurohit.letsBrowse.network.ProxyOverrideManager
 import java.io.ByteArrayOutputStream
 import java.net.URL
 import java.text.SimpleDateFormat
@@ -56,6 +58,7 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
     private var printJob: PrintJob? = null
+    private var useLocalProxy: Boolean = false
 
     companion object {
         var tabsList: ArrayList<Tab> = ArrayList()
@@ -81,6 +84,13 @@ class MainActivity : AppCompatActivity() {
         }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        useLocalProxy = getSharedPreferences("SETTINGS", MODE_PRIVATE)
+            .getBoolean("useLocalProxy", false)
+        if (useLocalProxy) {
+            val applied = ProxyOverrideManager.applyLocalSocksProxy(this)
+            if (!applied) updateProxyPreference(false)
+        }
 
         getAllBookmarks()
 
@@ -280,6 +290,27 @@ class MainActivity : AppCompatActivity() {
 
             }
 
+            val proxyToggle = dialogBinding.proxySwitch
+            var isUpdatingProxySwitch = false
+            proxyToggle.isChecked = useLocalProxy
+            val proxyListener = CompoundButton.OnCheckedChangeListener { _, isChecked ->
+                if (isUpdatingProxySwitch) return@OnCheckedChangeListener
+                val success = if (isChecked) {
+                    ProxyOverrideManager.applyLocalSocksProxy(this)
+                } else {
+                    ProxyOverrideManager.clearProxy(this)
+                }
+
+                if (success) {
+                    updateProxyPreference(isChecked)
+                } else {
+                    isUpdatingProxySwitch = true
+                    proxyToggle.isChecked = useLocalProxy
+                    isUpdatingProxySwitch = false
+                }
+            }
+            proxyToggle.setOnCheckedChangeListener(proxyListener)
+
             dialogBinding.bookmarkBtn.setOnClickListener {
                 frag?.let {
                     if (bookmarkIndex == -1) {
@@ -332,6 +363,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    }
+
+    private fun updateProxyPreference(enabled: Boolean) {
+        useLocalProxy = enabled
+        getSharedPreferences("SETTINGS", MODE_PRIVATE)
+            .edit()
+            .putBoolean("useLocalProxy", enabled)
+            .apply()
     }
 
     override fun onResume() {
