@@ -37,13 +37,13 @@ class BrowseFragment(private var urlNew: String = "https://www.google.com") : Fr
         binding = FragmentBrowseBinding.bind(view)
         registerForContextMenu(binding.webView)
 
-        binding.webView.apply {
-            when{
-                URLUtil.isValidUrl(urlNew) -> loadUrl(urlNew)
-                urlNew.contains(".com", ignoreCase = true) -> loadUrl(urlNew)
-                else -> loadUrl("https://www.google.com/search?q=$urlNew")
-            }
+        val startingUrl = when {
+            URLUtil.isValidUrl(urlNew) -> urlNew
+            urlNew.contains(".", ignoreCase = true) -> "https://$urlNew"
+            else -> "https://www.google.com/search?q=$urlNew"
         }
+
+        binding.webView.loadUrl(startingUrl)
 
         return view
     }
@@ -51,7 +51,9 @@ class BrowseFragment(private var urlNew: String = "https://www.google.com") : Fr
     @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
     override fun onResume() {
         super.onResume()
-        MainActivity.tabsList[MainActivity.myPager.currentItem].name = binding.webView.url.toString()
+        binding.webView.url?.let { currentUrl ->
+            MainActivity.tabsList[MainActivity.myPager.currentItem].name = currentUrl
+        }
         MainActivity.tabsBtn.text = MainActivity.tabsList.size.toString()
 
         //for downloading file using external download manager
@@ -89,13 +91,46 @@ class BrowseFragment(private var urlNew: String = "https://www.google.com") : Fr
                     super.onPageStarted(view, url, favicon)
                     mainRef.binding.progressBar.progress = 0
                     mainRef.binding.progressBar.visibility = View.VISIBLE
-                    if(url!!.contains("you", ignoreCase = false)) mainRef.binding.root.transitionToEnd()
+                    url?.let {
+                        if(it.contains("you", ignoreCase = false)) mainRef.binding.root.transitionToEnd()
+                    }
                 }
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
                     mainRef.binding.progressBar.visibility = View.GONE
                     binding.webView.zoomOut()
+                }
+
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: WebResourceError?
+                ) {
+                    super.onReceivedError(view, request, error)
+                    if (request?.isForMainFrame == true) {
+                        mainRef.binding.progressBar.visibility = View.GONE
+                        Snackbar.make(
+                            binding.root,
+                            error?.description ?: "Page failed to load",
+                            3000
+                        ).show()
+                    }
+                }
+
+                override fun onReceivedHttpError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    errorResponse: WebResourceResponse?
+                ) {
+                    if (request?.isForMainFrame == true) {
+                        Snackbar.make(
+                            binding.root,
+                            "Unable to load page (${errorResponse?.reasonPhrase ?: "HTTP error"})",
+                            3000
+                        ).show()
+                    }
+                    super.onReceivedHttpError(view, request, errorResponse)
                 }
             }
             webChromeClient = object: WebChromeClient(){
@@ -139,8 +174,6 @@ class BrowseFragment(private var urlNew: String = "https://www.google.com") : Fr
                 mainRef.binding.root.onTouchEvent(motionEvent)
                 return@setOnTouchListener false
             }
-
-            binding.webView.reload()
         }
 
 
@@ -149,18 +182,6 @@ class BrowseFragment(private var urlNew: String = "https://www.google.com") : Fr
     override fun onPause() {
         super.onPause()
         (requireActivity() as MainActivity).saveBookmarks()
-        //for clearing all webview data
-        binding.webView.apply {
-            clearMatches()
-            clearHistory()
-            clearFormData()
-            clearSslPreferences()
-            clearCache(true)
-
-            CookieManager.getInstance().removeAllCookies(null)
-            WebStorage.getInstance().deleteAllData()
-        }
-
     }
 
     override fun onCreateContextMenu(menu: ContextMenu, v: View, menuInfo: ContextMenu.ContextMenuInfo?) {

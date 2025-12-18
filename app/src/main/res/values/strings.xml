@@ -17,4 +17,5 @@
     <string name="all_bookmarks">All Bookmarks</string>
     <string name="refresh_btn">Refresh</string>
     <string name="one">1</string>
+    <string name="use_local_proxy_label">Use Local Proxy (SOCKS 127.0.0.1:10808)</string>
 </resources>
